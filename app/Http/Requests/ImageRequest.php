@@ -22,6 +22,11 @@ class ImageRequest extends FormRequest
      */
     public function rules(): array
     {
+        if($this->method() == 'PUT'){
+            return [
+                'title' => 'required'
+            ];
+        }
         return [
             'file'=>'required|image',
             'title'=>'nullable'
@@ -42,6 +47,19 @@ class ImageRequest extends FormRequest
             $data['dimension'] = Image::getDimension($data['file']);
         }
 
+        if($title = $data['title']){
+            $data['slug'] = $this->getSlug($title);
+        }
+
         return $data;
+    }
+
+    protected function getSlug($title){
+        $slug = str($title)->slug();
+        $numSlugsFound = Image::where('slug', 'regexp', "^".$slug."([0-9])?")->count();
+        if($numSlugsFound > 0){
+            return $slug . "-" . $numSlugsFound + 1;
+        }
+        return $slug;
     }
 }
