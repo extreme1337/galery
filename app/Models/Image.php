@@ -12,6 +12,16 @@ class Image extends Model
 
     protected $fillable = ['title', 'file', 'dimension', 'user_id', 'slug'];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function uploadDate()
+    {
+        return $this->created_at->diffForHumans();
+    }
+
     public static function makeDirectory()
     {
         $subFolder = 'images/' . date('Y/m/d');
@@ -40,30 +50,39 @@ class Image extends Model
         return $this->slug ? route("images.show", $this->slug) : '#';
     }
 
-    public function route($method, $key='id'){
+    public function route($method, $key = 'id')
+    {
         return route("images.{$method}", $this->$key);
     }
 
-    public function getSlug(){
+    public function getSlug()
+    {
         $slug = str($this->title)->slug();
-        $numSlugsFound = static::where('slug', 'regexp', "^".$slug."([0-9])?")->count();
-        if($numSlugsFound > 0){
-            return $slug . "-" . $numSlugsFound + 1;
+        $numSlugsFound = static::where('slug', 'regexp', "^" . $slug . "(-[0-9])?")->count();
+        if ($numSlugsFound > 0) {
+            return $slug . "-" .$numSlugsFound + 1;
         }
         return $slug;
     }
 
-    public static function booted(){
-        static::creating(function($image){
-            if($image->title){
+    protected static function booted()
+    {
+        static::creating(function ($image) {
+            if ($image->title) {
                 $image->slug = $image->getSlug();
                 $image->is_published = true;
             }
         });
-
-        static::deleted(function($image){
-            Storage::delete($image->file);
+        
+        static::updating(function ($image) {
+            if ($image->title && !$image->slug) {
+                $image->slug = $image->getSlug();
+                $image->is_published = true;
+            }
         });
         
+        static::deleted(function ($image) {
+            Storage::delete($image->file);
+        });
     }
 }

@@ -9,7 +9,7 @@ use App\Http\Requests\ImageRequest;
 class ImageController extends Controller
 {
     public function index(){
-        $images = Image::published()->latest()->paginate(15);
+        $images = Image::published()->latest()->paginate(15)->withQueryString();
 
 
         return view('images.index', compact('images'));
