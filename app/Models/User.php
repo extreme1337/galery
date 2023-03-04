@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Social;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -22,6 +23,12 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'username',
+        'profile_image',
+        'cover_image',
+        'city',
+        'country',
+        'about_me',
     ];
 
     /**
@@ -44,8 +51,32 @@ class User extends Authenticatable
     ];
 
     public function updateSettings($data){
+        this->update($data['user']);
         $this->updateSocialProfile($data['social']);
         $this->updateOptions($data['options']);
+    }
+
+    public function profileImageUrl()
+    {
+        return Storage::url($this->profile_image ? $this->profile_image : "users/user-default.png");
+    }
+
+    public function coverImageUrl()
+    {
+        return Storage::url($this->cover_image);
+    }
+
+
+    public function hasCoverImage()
+    {
+        return !!$this->cover_image;
+    }
+
+    public static function makeDirectory()
+    {
+        $directory = 'users';
+        Storage::makeDirectory($directory);
+        return $directory;
     }
 
     protected function updateOptions($options)
@@ -78,6 +109,21 @@ class User extends Authenticatable
     public function setting()
     {
         return $this->hasOne(Setting::class)->withDefault();
+    }
+
+    public function url()
+    {
+        return route('author.show', $this->username);
+    }
+
+    public function inlineProfile()
+    {
+        return collect([
+            $this->name,
+            trim(join("/", [$this->city, $this->country]), "/"),
+            "Member since " . $this->created_at->toFormattedDateString(),
+            $this->getImagesCount()
+        ])->filter()->implode(" • ");
     }
 
     protected static function booted()
